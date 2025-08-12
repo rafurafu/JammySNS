@@ -57,7 +57,6 @@ class AuthViewModel: ObservableObject {
     // 自分のuserIDを取得するメソッド
     func getMyUserID(){
         guard let userID = Auth.auth().currentUser?.uid else {
-            print("Current user ID not found")
             return
         }
         self.myUserID = userID
@@ -71,7 +70,6 @@ class AuthViewModel: ObservableObject {
     @MainActor
     func fetchMyUserInfo() async {
         guard let uid = myUserID else {
-            print("User ID is not set")
             return
         }
         
@@ -80,7 +78,6 @@ class AuthViewModel: ObservableObject {
             let document = try await docRef.getDocument()
             
             guard let data = document.data(), document.exists else {
-                print("User document does not exist")
                 return
             }
             
@@ -100,10 +97,8 @@ class AuthViewModel: ObservableObject {
             self.decidedUserName = hasUserName
             UserDefaults.standard.set(hasUserName, forKey: "decidedUserName")
             
-            print("User info loaded successfully")
             
         } catch {
-            print("Error fetching user info: \(error.localizedDescription)")
             errorMessage = "ユーザー情報の取得に失敗しました"
         }
     }
@@ -153,7 +148,6 @@ class AuthViewModel: ObservableObject {
     // Firestoreにユーザーデータを保存するメソッド
     func saveUserToFirestore(user: FirebaseAuth.User, email: String) {
         guard let uid = Auth.auth().currentUser?.uid else {
-            print("uidが見つかりませんでした")
             return
         }
         
@@ -173,7 +167,6 @@ class AuthViewModel: ObservableObject {
                 self?.errorMessage = "ユーザーデータの保存中にエラーが発生しました: \(error.localizedDescription)"
             } else {
                 self?.decidedUserName = false
-                print("ユーザーデータが Firestore に正常に保存されました")
             }
         }
     }
@@ -192,7 +185,6 @@ class AuthViewModel: ObservableObject {
         
         db.collection("users").document(uid).updateData(updateData) { error in
             if let error = error {
-                print("ユーザー名の更新に失敗しました: \(error.localizedDescription)")
                 completion(false)
             } else {
                 self.decidedUserName = true
@@ -217,13 +209,11 @@ class AuthViewModel: ObservableObject {
         // 確認メールの送信
         Auth.auth().currentUser?.sendEmailVerification { error in
             if let error = error {
-                print("確認メール送信エラー: \(error.localizedDescription)")
                 completion(false)
                 return
             }
             
             // 確認メールの送信に成功
-            print("確認メールを送信しました")
             completion(true)
         }
     }
@@ -238,7 +228,6 @@ class AuthViewModel: ObservableObject {
         // ユーザー情報を再読み込み
         user.reload { error in
             if let error = error {
-                print("ユーザー情報の再読み込みエラー: \(error.localizedDescription)")
                 completion(false)
                 return
             }
@@ -268,7 +257,6 @@ class AuthViewModel: ObservableObject {
         
         self.db.collection("users").document(uid).updateData(updateData) { error in
             if let error = error {
-                print("Firestoreでのメールアドレス更新エラー: \(error.localizedDescription)")
                 completion(false)
             } else {
                 // 一時保存したメールアドレスを削除
@@ -287,7 +275,6 @@ class AuthViewModel: ObservableObject {
             if let error = error {
                 self?.errorMessage = "パスワードリセットの送信エラー: \(error.localizedDescription)"
             } else {
-                print("パスワードリセットメールが正常に送信されました")
             }
         }
     }
@@ -295,7 +282,6 @@ class AuthViewModel: ObservableObject {
     // ログアウトメソッド
     func signOut() {
         do {
-            print("ログアウトします")
             try Auth.auth().signOut()
             isAuthenticated = false
             myUserID = nil
@@ -341,7 +327,6 @@ class AuthViewModel: ObservableObject {
     // ユーザープロフィールを更新するメソッド
     func updateUserProfile(name: String, bio: String, profileImageURL: String?, completion: @escaping (Bool) -> Void) {
         guard let uid = Auth.auth().currentUser?.uid else {
-            print("uidが見つかりませんでした")
             completion(false)
             return
         }
@@ -358,10 +343,8 @@ class AuthViewModel: ObservableObject {
         
         db.collection("users").document(uid).updateData(updateData) { error in
             if let error = error {
-                print("ユーザープロファイルの更新中にエラーが発生しました: \(error.localizedDescription)")
                 completion(false)
             } else {
-                print("ユーザープロファイルが正常に更新されました")
                 completion(true)
             }
         }
@@ -403,7 +386,6 @@ class AuthViewModel: ObservableObject {
             )
         
         } catch {
-            print("Failed to fetch favorite posts: \(error)")
             return UserProfile(
                 name: name,
                 bio: bio,

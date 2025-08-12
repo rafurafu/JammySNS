@@ -8,7 +8,6 @@
 import SwiftUI
 import FirebaseAuth
 import FirebaseFirestore
-import FirebaseAuth
 
 @MainActor
 class PostViewModel: ObservableObject {
@@ -40,7 +39,6 @@ class PostViewModel: ObservableObject {
                 self.hasMorePosts = !querySnapshot.documents.isEmpty
                 
             } catch {
-                print("Error fetching initial trend posts: \(error)")
                 throw error
             }
             
@@ -71,7 +69,6 @@ class PostViewModel: ObservableObject {
                 self.hasMorePosts = !querySnapshot.documents.isEmpty
                 
             } catch {
-                print("Error fetching more trend posts: \(error)")
                 throw error
             }
             
@@ -91,13 +88,11 @@ class PostViewModel: ObservableObject {
     }
     
     func loadMorePostsIfNeeded(currentIndex: Int, blockedUsers: Set<String>) async {
-        //print("posts: \(posts.count)")
         if currentIndex == posts.count - 2 && !isLoading && hasMorePosts {
             isLoading = true
             do {
                 try await loadMorePosts(blockedUsers: blockedUsers)
             } catch {
-                print("Error loading more posts: \(error)")
             }
             isLoading = false
         }
@@ -127,7 +122,6 @@ class PostViewModel: ObservableObject {
                 self.hasMorePosts = allPostIds.count > batchSize
             }
         } catch {
-            print("Error fetching posts: \(error)")
             throw error
         }
     }
@@ -163,7 +157,6 @@ class PostViewModel: ObservableObject {
             let document = try await db.collection("posts").document(postId).getDocument()
             return try? document.data(as: PostModel.self)
         } catch {
-            print("Error fetching post: \(error)")
             throw error
         }
     }
@@ -195,7 +188,6 @@ class PostViewModel: ObservableObject {
         
         // Get the current user's UID
         guard let uid = Auth.auth().currentUser?.uid else {
-            print("Error: No authenticated user")
             return
         }
         
@@ -221,9 +213,7 @@ class PostViewModel: ObservableObject {
         // Firestoreのpostsコレクションにデータを保存
         db.collection("posts").document(postId).setData(postData) { error in
             if let error = error {
-                print("投稿を保存できませんでした: \(error)")
             } else {
-                print("投稿を保存しました！！ Post ID: \(postId)")
             }
         }
     }
@@ -235,7 +225,6 @@ class PostViewModel: ObservableObject {
         let db = Firestore.firestore()
         db.collection("posts").getDocuments { (querySnapshot, error) in
             if let error = error {
-                print("Error fetching posts: \(error)")
                 return
             }
             
@@ -255,7 +244,6 @@ class PostViewModel: ObservableObject {
                         
                         return post
                     } catch {
-                        print("Error decoding document: \(error)")
                         return nil
                     }
                 }
@@ -295,7 +283,6 @@ class PostViewModel: ObservableObject {
                             previewURL: postData["previewURL"] as? String ?? ""
                         )
                     } catch {
-                        print("Error fetching post \(postId): \(error)")
                         return nil
                     }
                 }
@@ -333,7 +320,6 @@ class PostViewModel: ObservableObject {
                 // 取得した post をそのまま返す
                 return posts
             } catch {
-                print("Error decoding document: \(error)")
                 return nil
             }
         }
@@ -341,7 +327,6 @@ class PostViewModel: ObservableObject {
         // メインスレッドでUIを更新
         DispatchQueue.main.async {
             self.posts = fetchedPosts
-            //print("fetchedPosts: \(fetchedPosts)")
         }
     }
     
@@ -404,7 +389,6 @@ class PostViewModel: ObservableObject {
         func likePost(postId: String) {
             let db = Firestore.firestore()
             guard let uid = Auth.auth().currentUser?.uid else {
-                print("Error: No authenticated user")
                 return
             }
             
@@ -412,9 +396,7 @@ class PostViewModel: ObservableObject {
             
             likedUserRef.setData(["likedAt": Timestamp(date: Date())]) { error in
                 if let error = error {
-                    print("いいねを保存できませんでした: \(error)")
                 } else {
-                    print("いいねを保存しました！ Post ID: \(postId), User ID: \(uid)")
                     
                     // いいね数を更新
                     let postRef = db.collection("posts").document(postId)
@@ -422,9 +404,7 @@ class PostViewModel: ObservableObject {
                         "likeCount": FieldValue.increment(Int64(1))
                     ]) { error in
                         if let error = error {
-                            print("いいね数の更新に失敗しました: \(error)")
                         } else {
-                            print("いいね数を更新しました")
                         }
                     }
                 }
@@ -437,7 +417,6 @@ class PostViewModel: ObservableObject {
         func unlikePost(postId: String) {
             let db = Firestore.firestore()
             guard let uid = Auth.auth().currentUser?.uid else {
-                print("Error: No authenticated user")
                 return
             }
             
@@ -445,9 +424,7 @@ class PostViewModel: ObservableObject {
             
             likedUserRef.delete() { error in
                 if let error = error {
-                    print("いいねの削除に失敗しました: \(error)")
                 } else {
-                    print("いいねを削除しました！ Post ID: \(postId), User ID: \(uid)")
                     
                     // いいね数を更新
                     let postRef = db.collection("posts").document(postId)
@@ -455,9 +432,7 @@ class PostViewModel: ObservableObject {
                         "likeCount": FieldValue.increment(Int64(-1))
                     ]) { error in
                         if let error = error {
-                            print("いいね数の更新に失敗しました: \(error)")
                         } else {
-                            print("いいね数を更新しました")
                         }
                     }
                 }
@@ -472,7 +447,6 @@ class PostViewModel: ObservableObject {
         func checkIfLiked(postId: String, completion: @escaping (Bool) -> Void) {
             let db = Firestore.firestore()
             guard let uid = Auth.auth().currentUser?.uid else {
-                print("Error: No authenticated user")
                 completion(false)
                 return
             }

@@ -35,9 +35,6 @@ class JammyRecommendModel: ObservableObject {
     
     // ランダムレコメンドの実装
     func randomRecommend(popularity: Double) async throws -> [TrackInfo.Track] {
-        print("\n=== ランダムレコメンド開始 ===")
-        print("設定値:")
-        print("- 人気度: \(String(format: "%.1f", popularity))%")
         
         let formattedPopularity = String(format: "%.0f", popularity)
         
@@ -70,10 +67,7 @@ class JammyRecommendModel: ObservableObject {
         "&min_popularity=\(Int(minPopularity))" +
         "&max_popularity=\(Int(maxPopularity))"
         
-        print("\nリクエストURL: \(urlString)")
-        
         guard let url = URL(string: urlString) else {
-            print("Error: URLの生成に失敗")
             throw SpotifyError.invalidURL
         }
         
@@ -86,32 +80,23 @@ class JammyRecommendModel: ObservableObject {
         
         while retryCount < maxRetries {
             do {
-                print("\n試行 \(retryCount + 1)/\(maxRetries)")
                 let (data, response) = try await URLSession.shared.data(for: request)
                 
                 guard let httpResponse = response as? HTTPURLResponse else {
-                    print("Error: 不正なレスポンス形式")
                     throw SpotifyError.badServerResponse
                 }
-                
-                print("ステータスコード: \(httpResponse.statusCode)")
                 
                 switch httpResponse.statusCode {
                 case 200:
                     let tracks = try parseTrackResponse(data: data)
                     if tracks.isEmpty {
-                        print("Error: 曲が見つかりませんでした")
                         throw SpotifyError.noTracksFound
                     }
-                    print("取得件数: \(tracks.count)曲")
-                    print("=== レコメンド完了 ===\n")
                     return tracks
                     
                 case 429:
-                    print("Error: レート制限に到達")
                     if let retryAfter = httpResponse.value(forHTTPHeaderField: "Retry-After"),
                        let waitTime = Int(retryAfter) {
-                        print("待機時間: \(waitTime)秒")
                         try await Task.sleep(nanoseconds: UInt64(waitTime) * 1_000_000_000)
                         retryCount += 1
                         continue
@@ -120,7 +105,6 @@ class JammyRecommendModel: ObservableObject {
                     
                 default:
                     if retryCount < maxRetries - 1 {
-                        print("Error: ステータスコード \(httpResponse.statusCode)")
                         retryCount += 1
                         try await Task.sleep(nanoseconds: 1_000_000_000)
                         continue
@@ -130,7 +114,6 @@ class JammyRecommendModel: ObservableObject {
                 
             } catch {
                 if retryCount < maxRetries - 1 {
-                    print("Error: \(error.localizedDescription)")
                     retryCount += 1
                     try await Task.sleep(nanoseconds: 1_000_000_000)
                     continue
@@ -139,19 +122,11 @@ class JammyRecommendModel: ObservableObject {
             }
         }
         
-        print("Error: すべての試行が失敗")
         throw SpotifyError.badServerResponse
     }
     
     // 細かくレコメンド
     func customRecommend(recommend: RecommendSettings) async throws -> [TrackInfo.Track] {
-        print("\n=== カスタムレコメンド開始 ===")
-        print("設定値:")
-        print("- 人気度: \(String(format: "%.1f", recommend.targetPopularity))%")
-        print("- エネルギー: \(String(format: "%.1f", recommend.energy * 100))%")
-        print("- テンポ: \(String(format: "%.1f", recommend.minTempo))BPM")
-        print("- 明るさ: \(String(format: "%.1f", recommend.valence * 100))%")
-        print("- ジャンル: \(recommend.selectedGenres)")
         
         // 数値を2桁の小数点に制限
         let formattedPopularity = String(format: "%.0f", recommend.targetPopularity)
@@ -173,10 +148,7 @@ class JammyRecommendModel: ObservableObject {
         "&target_tempo=\(formattedTempo)" +
         "&target_valence=\(formattedValence)"
         
-        print("\nリクエストURL: \(urlString)")
-        
         guard let url = URL(string: urlString) else {
-            print("Error: URLの生成に失敗")
             throw SpotifyError.invalidURL
         }
         
@@ -189,37 +161,23 @@ class JammyRecommendModel: ObservableObject {
         
         while retryCount < maxRetries {
             do {
-                print("\n試行 \(retryCount + 1)/\(maxRetries)")
                 let (data, response) = try await URLSession.shared.data(for: request)
                 
                 guard let httpResponse = response as? HTTPURLResponse else {
-                    print("Error: 不正なレスポンス形式")
                     throw SpotifyError.badServerResponse
-                }
-                
-                print("ステータスコード: \(httpResponse.statusCode)")
-                
-                // レスポンスボディの内容を確認
-                if let responseString = String(data: data, encoding: .utf8) {
-                    print("レスポンス内容: \(responseString)")
                 }
                 
                 switch httpResponse.statusCode {
                 case 200:
                     let tracks = try parseTrackResponse(data: data)
                     if tracks.isEmpty {
-                        print("Error: 曲が見つかりませんでした")
                         throw SpotifyError.noTracksFound
                     }
-                    print("取得件数: \(tracks.count)曲")
-                    print("=== レコメンド完了 ===\n")
                     return tracks
                     
                 case 429:
-                    print("Error: レート制限に到達")
                     if let retryAfter = httpResponse.value(forHTTPHeaderField: "Retry-After"),
                        let waitTime = Int(retryAfter) {
-                        print("待機時間: \(waitTime)秒")
                         try await Task.sleep(nanoseconds: UInt64(waitTime) * 1_000_000_000)
                         retryCount += 1
                         continue
@@ -228,7 +186,6 @@ class JammyRecommendModel: ObservableObject {
                     
                 default:
                     if retryCount < maxRetries - 1 {
-                        print("Error: ステータスコード \(httpResponse.statusCode)")
                         retryCount += 1
                         try await Task.sleep(nanoseconds: 1_000_000_000)
                         continue
@@ -238,7 +195,6 @@ class JammyRecommendModel: ObservableObject {
                 
             } catch {
                 if retryCount < maxRetries - 1 {
-                    print("Error: \(error.localizedDescription)")
                     retryCount += 1
                     try await Task.sleep(nanoseconds: 1_000_000_000)
                     continue
@@ -247,7 +203,6 @@ class JammyRecommendModel: ObservableObject {
             }
         }
         
-        print("Error: すべての試行が失敗")
         throw SpotifyError.badServerResponse
     }
     

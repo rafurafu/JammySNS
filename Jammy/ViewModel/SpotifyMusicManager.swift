@@ -136,7 +136,6 @@ class SpotifyMusicManager: NSObject, ObservableObject {
     // Spotify接続
     func connect() {
         guard !appRemote.isConnected else {
-            print("すでに接続しています")
             self.isAuthorized = true
             return
         }
@@ -157,11 +156,9 @@ class SpotifyMusicManager: NSObject, ObservableObject {
                     self?.appRemote.connect()
                 }
             } else {
-                print("認証が必要です")
             }
         } else {
             // Spotifyアプリがインストールされていない場合
-            print("Spotifyアプリがインストールされていません。プレビュー再生モードで続行します")
             self.isAuthorized = true  // プレビュー再生用に認証状態を許可
             self.isPremiumUser = false // フリープラン扱いとする
         }
@@ -368,7 +365,6 @@ class SpotifyMusicManager: NSObject, ObservableObject {
                 self.isAuthorized = true
             }
         } catch {
-            print("Token refresh failed: \(error)")
             await MainActor.run {
                 self.hasValidToken = false
                 self.isAuthorized = false
@@ -379,7 +375,6 @@ class SpotifyMusicManager: NSObject, ObservableObject {
     // exchangeCodeForAccessToken関数
     private func exchangeCodeForAccessToken(with authCode: String) {
         guard let codeVerifier = UserDefaults.standard.string(forKey: "codeVerifier") else {
-            print("Code verifierが見つかりません")
             return
         }
         
@@ -565,7 +560,6 @@ class SpotifyMusicManager: NSObject, ObservableObject {
         
         if httpResponse.statusCode == 200 {
             let userProfile = try JSONDecoder().decode(SpotifyUserProfile.self, from: data)
-            //            print("User Plan: \(userProfile)")
             return userProfile
         } else {
             throw NSError(domain: "HTTPError", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "Failed to get user info"])
@@ -578,7 +572,6 @@ class SpotifyMusicManager: NSObject, ObservableObject {
     func updateUserProfile() async {
         do {
             if !accessToken.isEmpty {
-                print("updateUserProfile呼び出し")
                 let userProfile = try await getUserInfo(accessToken: accessToken)
                 let isPremium = userProfile.product.lowercased() == "premium"
                 
@@ -596,7 +589,6 @@ class SpotifyMusicManager: NSObject, ObservableObject {
                                 if UIApplication.shared.canOpenURL(spotifyPremiumURL) {
                                     UIApplication.shared.open(spotifyPremiumURL)
                                 } else {
-                                    print("アップグレードしない")
                                 }
                             },
                             secondaryButton: .cancel(title: "今はしない")
@@ -605,7 +597,6 @@ class SpotifyMusicManager: NSObject, ObservableObject {
                 }
             }
         } catch {
-            print("Failed to update user profile: \(error)")
             // トークンが無効な場合は再認証が必要
             if let httpError = error as NSError?, httpError.domain == "HTTPError" && httpError.code == 401 {
                 await MainActor.run {
@@ -790,11 +781,7 @@ class SpotifyMusicManager: NSObject, ObservableObject {
             } else {
                 if let errorData = try? JSONDecoder().decode([String: String].self, from: data),
                    let errorMessage = errorData["error"] {
-                    //                print("Failed to start playback. Error: \(errorMessage)")
                 } else {
-                    //                print("Failed to start playback. Status code: \(httpResponse.statusCode)")
-                    //                print("Response status code: \(httpResponse.statusCode)") // ステータスコードを確認
-                    //                print("Response body: \(String(data: data, encoding: .utf8) ?? "No data")") // レスポンスボディを確認
                 }
             }
         } else {
@@ -814,7 +801,6 @@ class SpotifyMusicManager: NSObject, ObservableObject {
         let (data, response) = try await URLSession.shared.data(for: request)
         
         guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-            print("Failed to get player state.")
             return nil
         }
         
@@ -829,7 +815,6 @@ class SpotifyMusicManager: NSObject, ObservableObject {
                 return nil
             }
         } catch {
-            print("デコードエラー: \(error)")
             return nil
         }
     }
@@ -869,7 +854,6 @@ class SpotifyMusicManager: NSObject, ObservableObject {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         // Bearer トークンの形式を確認
-        print("Access Token: \(accessToken)")  // デバッグ用
         request.addValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
         
@@ -878,9 +862,6 @@ class SpotifyMusicManager: NSObject, ObservableObject {
             "uris": [trackUri]
         ]
         let jsonData = try JSONSerialization.data(withJSONObject: body)
-        if let jsonString = String(data: jsonData, encoding: .utf8) {
-            print("Request body: \(jsonString)")  // デバッグ用
-        }
         request.httpBody = jsonData
         
         let (data, response) = try await URLSession.shared.data(for: request)
@@ -890,14 +871,9 @@ class SpotifyMusicManager: NSObject, ObservableObject {
         }
         
         // レスポンスの詳細をデバッグ出力
-        //print("Response status code: \(httpResponse.statusCode)")
-        if let responseString = String(data: data, encoding: .utf8) {
-            //print("Response body: \(responseString)")
-        }
         
         switch httpResponse.statusCode {
         case 201, 200:  // 200も成功として扱う
-            //print("Track successfully added to playlist")
             await MainActor.run {
                 let showAlert = ShowAlert()
                 showAlert.showOKAlert(
@@ -983,9 +959,6 @@ class SpotifyMusicManager: NSObject, ObservableObject {
         }
         
         // デバッグ用
-        if let jsonString = String(data: data, encoding: .utf8) {
-            // print("Response JSON: \(jsonString)")
-        }
         
         // レスポンスをデコード
         let artistsResponse = try JSONDecoder().decode(LikeArtistsModel.self, from: data)
@@ -1015,45 +988,31 @@ class SpotifyMusicManager: NSObject, ObservableObject {
         request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
-        print("アクセストークン: \(accessToken)")
-        print("Attempting to fetch: \(url)")
         
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
             
             // レスポンスの詳細なログ
-            if let responseString = String(data: data, encoding: .utf8) {
-                print("Response: \(responseString)")
-            }
             
             guard let httpResponse = response as? HTTPURLResponse else {
-                print("httpResponse エラー: statusCode 0")
                 throw PlaylistError.invalidResponse(statusCode: 0)
             }
             
             guard httpResponse.statusCode == 200 else {
-                print("httpResponse エラー: statusCode \(httpResponse.statusCode)")
                 throw PlaylistError.invalidResponse(statusCode: httpResponse.statusCode)
             }
             
             // JSONデコードを試みる前にデータの中身を確認
-            if let jsonString = String(data: data, encoding: .utf8) {
-                print("受信したJSONデータ: \(jsonString)")
-            }
             
             do {
                 let playlistResponse = try JSONDecoder().decode(PlaylistResponse.self, from: data)
-                print("プレイリストレスポンス: \(playlistResponse.validItems)")
                 return playlistResponse.validItems
             } catch {
-                print("JSONデコードエラー: \(error)")
                 throw PlaylistError.invalidData
             }
         } catch let error as DecodingError {
-            print("Decoding エラー: \(error)")
             throw PlaylistError.invalidData
         } catch {
-            print("ネットワークエラー: \(error)")
             throw PlaylistError.networkError(error)
         }
     }
@@ -1075,20 +1034,13 @@ extension SpotifyMusicManager: SPTSessionManagerDelegate {
     
     // セッション開始時の処理
     func sessionManager(manager: SPTSessionManager, didInitiate session: SPTSession) {
-        print("セッション成功")
         DispatchQueue.main.async {
-            //self.appRemote.connectionParameters.accessToken = session.accessToken
-            
-            //self.accessToken = session.accessToken
-            //self.isAuthorized = true
             self.authorizationError = nil
-            //self.appRemote.connect()
         }
     }
     
     // セッション失敗時の処理
     func sessionManager(manager: SPTSessionManager, didFailWith error: Error) {
-        print("セッション失敗: \(error.localizedDescription),\(error)")
         DispatchQueue.main.async {
             self.isAuthorized = false
             self.authorizationError = error.localizedDescription
@@ -1097,40 +1049,29 @@ extension SpotifyMusicManager: SPTSessionManagerDelegate {
     
     // セッション更新時の処理
     func sessionManager(manager: SPTSessionManager, didRenew session: SPTSession) {
-        print("セッション更新")
         //TODO: トークン取得処理実装
-        //        DispatchQueue.main.async {
-        //            self.accessToken = session.accessToken
-        //        }
     }
 }
 
 // Spotify　接続状態監視
 extension SpotifyMusicManager: SPTAppRemoteDelegate {
     func appRemoteDidEstablishConnection(_ appRemote: SPTAppRemote) {
-        print("Spotifyと接続しました")
         DispatchQueue.main.async {
             self.isConnected = true
             self.isAuthorized = true
             self.connectionAttempts = 0
-            //appRemote.authorizeAndPlayURI("")
         }
     }
     
     func appRemote(_ appRemote: SPTAppRemote, didFailConnectionAttemptWithError error: Error?) {
-        print("Spotifyと接続できませんでした: \(String(describing: error))")
         
         if connectionAttempts < maxConnectionAttempts {
             connect()
-            //appRemote.authorizeAndPlayURI("")
         } else {
-            //            let errorMessage = "Spotifyとの接続に失敗しました。Spotifyアプリがインストールされていることを確認し、再度お試しください。"
-            //            handleConnectionError(errorMessage)
         }
     }
     
     func appRemote(_ appRemote: SPTAppRemote, didDisconnectWithError error: Error?) {
-        print("Spotifyとの接続が切断されました: \(String(describing: error))")
         
         // エラーの説明から認証が必要かどうかを判断
         if let error = error as NSError? {
@@ -1152,7 +1093,6 @@ extension SpotifyMusicManager: SPTAppRemoteDelegate {
                 )
             } else {
                 // その他の切断
-                print("一時的な切断: \(error)")
             }
         }
     }

@@ -28,7 +28,6 @@ class CommentViewModel: ObservableObject {
             .order(by: "commentTime", descending: true)
             .addSnapshotListener { (querySnapshot, error) in
                 guard let documents = querySnapshot?.documents else {
-                    print("コメント取得エラー: \(error?.localizedDescription ?? "不明なエラー")")
                     return
                 }
                 
@@ -45,7 +44,6 @@ class CommentViewModel: ObservableObject {
             _ = try db.collection("posts").document(postId).collection("comments").addDocument(from: newComment)
             self.newComment = ""
         } catch {
-            print("Firestore へのコメント追加エラー: \(error)")
         }
     }
     
@@ -56,7 +54,6 @@ class CommentViewModel: ObservableObject {
             "likes": FieldValue.increment(Int64(1))
         ]) { error in
             if let error = error {
-                print("ドキュメントの更新中にエラーが発生しました: \(error)")
             }
         }
     }
