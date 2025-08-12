@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>API_KEY</key>
+	<string>AIzaSyDfI3Lb_OxrwOnkqSEWpQDFoWpFu65_T2w</string>
+	<key>GCM_SENDER_ID</key>
+	<string>717660855714</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.ryohei.Jammy</string>
+	<key>PROJECT_ID</key>
+	<string>jammy-1ab3e</string>
+	<key>STORAGE_BUCKET</key>
+	<string>jammy-1ab3e.appspot.com</string>
+	<key>IS_ADS_ENABLED</key>
+	<false/>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false/>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true/>
+	<key>IS_GCM_ENABLED</key>
+	<true/>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true/>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:717660855714:ios:3930752bce564a7b09a6fb</string>
+</dict>
+</plist>
