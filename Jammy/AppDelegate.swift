@@ -16,16 +16,6 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         // Firebaseの設定
         FirebaseApp.configure()
         
-        // isAuthrizationの初期化のための処理
-//        do {
-//            try Auth.auth().signOut()
-//        } catch {
-//            print("初期化失敗")
-//        }
-//        UserDefaults.standard.removeObject(forKey: "codeVerifier")
-//        UserDefaults.standard.removeObject(forKey: "hasAgreedToTerms")
-//        UserDefaults.standard.removeObject(forKey: "userName")
-//        UserDefaults.standard.removeObject(forKey: "userSettings")
         
         return true
     }

@@ -60,7 +60,6 @@
 		34EC937E2CC87545007F3BB4 /* ProfilePostView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34EC937D2CC87545007F3BB4 /* ProfilePostView.swift */; };
 		34EC93802CC896DB007F3BB4 /* AppDestination.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34EC937F2CC896DB007F3BB4 /* AppDestination.swift */; };
 		34EC93822CC89CC8007F3BB4 /* UserProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34EC93812CC89CC8007F3BB4 /* UserProfile.swift */; };
-		34EC93862CC9E4C7007F3BB4 /* TestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34EC93852CC9E4C7007F3BB4 /* TestView.swift */; };
 		34EC93882CCB5890007F3BB4 /* PlaylistModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34EC93872CCB5890007F3BB4 /* PlaylistModel.swift */; };
 		34EF34F12C99A06B00FFDAE6 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34EF34F02C99A06B00FFDAE6 /* AppDelegate.swift */; };
 		5005A6582C91252C00F21BD9 /* AuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5005A6572C91252C00F21BD9 /* AuthViewModel.swift */; };
@@ -88,7 +87,6 @@
 		50D394532CD125B30070B9E4 /* FFmodel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50D394522CD125B30070B9E4 /* FFmodel.swift */; };
 		50D394562CD136C20070B9E4 /* OtherProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50D394552CD136C20070B9E4 /* OtherProfileView.swift */; };
 		50D3945A2CD20E650070B9E4 /* JammyRecommendSettingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50D394592CD20E650070B9E4 /* JammyRecommendSettingView.swift */; };
-		50D3945C2CD551640070B9E4 /* test2.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50D3945B2CD551640070B9E4 /* test2.swift */; };
 		50D7F5262C95A14200641172 /* StartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50D7F5252C95A14200641172 /* StartView.swift */; };
 		50ECE4462CD9F1BE00167D9B /* RecommendSelectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50ECE4452CD9F1BE00167D9B /* RecommendSelectView.swift */; };
 		50FFF5D42C29494A00DC4D8E /* SettingServiceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50FFF5D32C29494A00DC4D8E /* SettingServiceView.swift */; };
@@ -149,7 +147,6 @@
 		34EC937D2CC87545007F3BB4 /* ProfilePostView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfilePostView.swift; sourceTree = "<group>"; };
 		34EC937F2CC896DB007F3BB4 /* AppDestination.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDestination.swift; sourceTree = "<group>"; };
 		34EC93812CC89CC8007F3BB4 /* UserProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfile.swift; sourceTree = "<group>"; };
-		34EC93852CC9E4C7007F3BB4 /* TestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestView.swift; sourceTree = "<group>"; };
 		34EC93872CCB5890007F3BB4 /* PlaylistModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaylistModel.swift; sourceTree = "<group>"; };
 		34EF34F02C99A06B00FFDAE6 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		5005A6572C91252C00F21BD9 /* AuthViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthViewModel.swift; sourceTree = "<group>"; };
@@ -171,7 +168,6 @@
 		50D394522CD125B30070B9E4 /* FFmodel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FFmodel.swift; sourceTree = "<group>"; };
 		50D394552CD136C20070B9E4 /* OtherProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OtherProfileView.swift; sourceTree = "<group>"; };
 		50D394592CD20E650070B9E4 /* JammyRecommendSettingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JammyRecommendSettingView.swift; sourceTree = "<group>"; };
-		50D3945B2CD551640070B9E4 /* test2.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = test2.swift; sourceTree = "<group>"; };
 		50D7F5252C95A14200641172 /* StartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StartView.swift; sourceTree = "<group>"; };
 		50ECE4452CD9F1BE00167D9B /* RecommendSelectView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecommendSelectView.swift; sourceTree = "<group>"; };
 		50FFF5D32C29494A00DC4D8E /* SettingServiceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingServiceView.swift; sourceTree = "<group>"; };
@@ -277,8 +273,6 @@
 			isa = PBXGroup;
 			children = (
 				34CDEEBB2BEDB9360001330A /* ContentView.swift */,
-				34EC93852CC9E4C7007F3BB4 /* TestView.swift */,
-				50D3945B2CD551640070B9E4 /* test2.swift */,
 				502EE7682CC227020003F315 /* Follow */,
 				B263D4092C1C0FCB009A5E83 /* Post */,
 				34D2D4162C12AA1F00F0C23D /* Login */,
@@ -578,13 +572,11 @@
 				50ECE4462CD9F1BE00167D9B /* RecommendSelectView.swift in Sources */,
 				34E0510E2C0EE2360035B356 /* ProfileLikeView.swift in Sources */,
 				502EE76A2CC227BB0003F315 /* FollowContainerVIew.swift in Sources */,
-				34EC93862CC9E4C7007F3BB4 /* TestView.swift in Sources */,
 				34E972732CD1B63200DC2AF1 /* ProfileGridArtistView.swift in Sources */,
 				34D2D40C2C11371700F0C23D /* SettingPrivacyView.swift in Sources */,
 				34E0510F2C0EE2360035B356 /* ProfileView.swift in Sources */,
 				50D177382C93E1D5003FE522 /* SignUpView.swift in Sources */,
 				34E9727F2CD9D8DE00DC2AF1 /* ProfileGridLikesView.swift in Sources */,
-				50D3945C2CD551640070B9E4 /* test2.swift in Sources */,
 				50FFF5D42C29494A00DC4D8E /* SettingServiceView.swift in Sources */,
 				34E972772CD1C86F00DC2AF1 /* FavoriteArtistsManager.swift in Sources */,
 				34A441C52C3FA958003019C9 /* StartSettingView.swift in Sources */,

@@ -1,1 +1,0 @@
-    @StateObject var blockViewModel = BlockViewModel()  // 追加
