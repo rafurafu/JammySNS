@@ -41,8 +41,11 @@ struct MainPostView: View {
     var body: some View {
         GeometryReader { geometry in
             VStack(alignment: .leading, spacing: 0) {
-                mainCard(geometry: geometry)
                 userInfoSection(geometry: geometry)
+                // 画像がない場合のみ音楽カードを表示
+                if post.imageURL == nil {
+                    mainCard(geometry: geometry)
+                }
             }
             //.frame(height: geometry.size.height - 150)
             // .ignoresSafeArea(.keyboard, edges: .bottom)
@@ -326,14 +329,61 @@ struct MainPostView: View {
                 
             }
             
-            Text(post.postComment)
-                .font(.system(size: 15, design: .rounded))
-                .fontWeight(.medium)
-                .foregroundColor(secondaryTextColor)
-                .lineLimit(3)
-                .onTapGesture {
-                    isCommentDetailShown = true
+            VStack(alignment: .leading, spacing: 10) {
+                Text(post.postComment)
+                    .font(.system(size: 15, design: .rounded))
+                    .fontWeight(.medium)
+                    .foregroundColor(secondaryTextColor)
+                    .lineLimit(3)
+                    .onTapGesture {
+                        isCommentDetailShown = true
+                    }
+                
+                // 投稿画像がある場合は表示（音楽プレイヤーをオーバーレイ）
+                if let imageURL = post.imageURL,
+                   let url = URL(string: imageURL) {
+                    ZStack(alignment: .bottom) {
+                        // 背景画像
+                        AsyncImage(url: url) { phase in
+                            switch phase {
+                            case .empty:
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color.gray.opacity(0.3))
+                                    .frame(height: 200)
+                                    .overlay {
+                                        ProgressView()
+                                    }
+                            case .success(let image):
+                                image
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fit)
+                                    .frame(maxHeight: 250)
+                                    .cornerRadius(12)
+                                    .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
+                            case .failure(_):
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color.gray.opacity(0.3))
+                                    .frame(height: 200)
+                                    .overlay {
+                                        Image(systemName: "photo")
+                                            .foregroundColor(.gray)
+                                            .font(.title)
+                                    }
+                            @unknown default:
+                                EmptyView()
+                            }
+                        }
+                        
+                        // 音楽プレイヤーオーバーレイ（画像の下部に配置）
+                        overlayMusicPlayer()
+                            .padding(.horizontal, 16)
+                            .padding(.bottom, 16)
+                    }
+                    .onTapGesture {
+                        // 画像をタップしたときに拡大表示などの処理を追加可能
+                    }
                 }
+            }
         }
         .padding(.top, 10)
         .sheet(isPresented: $isCommentDetailShown) {
@@ -454,6 +504,62 @@ struct MainPostView: View {
         
     }
     
+    // 画像上に重ねる音楽プレイヤー
+    private func overlayMusicPlayer() -> some View {
+        HStack(spacing: 20) {
+            // Album artwork (元のサイズと同じ)
+            AsyncImage(url: URL(string: post.albumImageUrl)) { image in
+                image
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 60, height: 60)
+                    .cornerRadius(8)
+            } placeholder: {
+                Rectangle()
+                    .fill(Color.gray.opacity(0.3))
+                    .frame(width: 60, height: 60)
+                    .cornerRadius(8)
+            }
+            
+            // Track info
+            VStack(alignment: .leading, spacing: 5) {
+                Text(post.name)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+                Text(post.artists.first ?? "Unknown Artist")
+                    .font(.system(size: 16))
+                    .foregroundColor(.white.opacity(0.8))
+                    .lineLimit(1)
+            }
+            
+            Spacer()
+            
+            // Play button
+            Button {
+                togglePlayPause()
+            } label: {
+                Image(systemName: playing ? "pause.circle.fill" : "play.circle.fill")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 40, height: 40)
+                    .foregroundColor(.white)
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+        .background(
+            // 半透明のブラー背景
+            RoundedRectangle(cornerRadius: 15)
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 15)
+                        .fill(Color.black.opacity(0.3))
+                )
+        )
+        .shadow(color: Color.black.opacity(0.2), radius: 5, x: 0, y: 2)
+    }
+    
     private func navigateToProfile() {
         if postUserInfo.id == "" {
             let alert = ShowAlert()
@@ -507,10 +613,46 @@ struct CommentDetailView: View {
                         Spacer()
                     }
                     
-                    Text(post.postComment)
-                        .font(.body)
-                        .padding(.leading, 30)
-                        .multilineTextAlignment(.leading)
+                    VStack(alignment: .leading, spacing: 15) {
+                        Text(post.postComment)
+                            .font(.body)
+                            .padding(.leading, 30)
+                            .multilineTextAlignment(.leading)
+                        
+                        // 投稿画像がある場合は表示
+                        if let imageURL = post.imageURL,
+                           let url = URL(string: imageURL) {
+                            AsyncImage(url: url) { phase in
+                                switch phase {
+                                case .empty:
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(Color.gray.opacity(0.3))
+                                        .frame(height: 200)
+                                        .overlay {
+                                            ProgressView()
+                                        }
+                                case .success(let image):
+                                    image
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fit)
+                                        .cornerRadius(12)
+                                        .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
+                                case .failure(_):
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(Color.gray.opacity(0.3))
+                                        .frame(height: 200)
+                                        .overlay {
+                                            Image(systemName: "photo")
+                                                .foregroundColor(.gray)
+                                                .font(.title)
+                                        }
+                                @unknown default:
+                                    EmptyView()
+                                }
+                            }
+                            .padding(.horizontal, 30)
+                        }
+                    }
                 }
                 .padding(.vertical)
             }
@@ -536,7 +678,7 @@ struct CommentDetailView: View {
 
 
 #Preview {
-    MainPostView(post: PostModel(name: "Sign", trackURI: "spotify:track:5ZLkGLEYYDlgcDXK6A2vYO", artists: ["Mr.Children"], albumImageUrl: "https://i.scdn.co/image/ab67616d0000b273354761925b7a53bf12c6e07c", postComment: "aaa", trackDuration: 243000, postTime: Date() - 1000, postUser: "zuIyF0BTmGdVDH8JcTycN6qjbVO2", likeCount: 12, previewURL: ""),
+    MainPostView(post: PostModel(name: "Sign", trackURI: "spotify:track:5ZLkGLEYYDlgcDXK6A2vYO", artists: ["Mr.Children"], albumImageUrl: "https://i.scdn.co/image/ab67616d0000b273354761925b7a53bf12c6e07c", postComment: "aaa", trackDuration: 243000, postTime: Date() - 1000, postUser: "zuIyF0BTmGdVDH8JcTycN6qjbVO2", likeCount: 12, previewURL: "", imageURL: nil),
                  isComment: .constant(false),
                  postUserInfo: .constant(UserProfile(name: "name", bio: "こんちゃっちゃ", profileImageURL: "gs://jammy-1ab3e.appspot.com/profile_images/zuIyF0BTmGdVDH8JcTycN6qjbVO2.jpg", uid: "zuIyF0BTmGdVDH8JcTycN6qjbVO2")),
                  navigationPath: .constant(NavigationPath())

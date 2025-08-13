@@ -20,4 +20,5 @@ struct PostModel: Identifiable, Codable, Equatable, Hashable {
     var postUser: String
     var likeCount: Int
     var previewURL: String
+    var imageURL: String? // 投稿に添付された画像のURL
 }

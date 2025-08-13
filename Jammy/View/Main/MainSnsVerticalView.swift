@@ -147,6 +147,7 @@ private func createPostModel(from track: TrackInfo.Track) -> PostModel {
         postTime: Date(),
         postUser: "Jammy",
         likeCount: 0,
-        previewURL: track.preview_url ?? ""
+        previewURL: track.preview_url ?? "",
+        imageURL: nil
     )
 }
