@@ -139,7 +139,7 @@ struct MainView: View {
                         .frame(width: geometry.size.width, height: geometry.size.height - 150)
                         .tag(0)
                     
-                    MainFollowingView(navigationPath: $navigationPath)
+                    MainFollowingView()
                         .environmentObject(blockViewModel)
                         .environmentObject(spotifyManager)
                         .frame(width: geometry.size.width, height: geometry.size.height - 150)
