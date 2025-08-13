@@ -106,19 +106,64 @@ struct MainSnsView: View {
                 // ユーザー情報ヘッダー
                 postHeader(for: post)
                 
-                // 音楽プレイヤーカード
-                musicPlayerCard(for: post)
-                
-                // 投稿コメント
-                if !post.postComment.isEmpty {
-                    HStack(alignment: .top) {
-                        Text(post.postComment)
-                            .font(.system(size: 15))
-                            .foregroundColor(colorScheme == .dark ? .white : .black)
-                            .multilineTextAlignment(.leading) // テキストの行揃えも左に
-                        Spacer()
+                // 曲、コメント、写真の順で表示
+                VStack(alignment: .leading, spacing: 12) {
+                    // 曲
+                    musicPlayerCard(for: post)
+
+                    // コメント
+                    if !post.postComment.isEmpty {
+                        HStack(alignment: .top) {
+                            Text(post.postComment)
+                                .font(.system(size: 15))
+                                .foregroundColor(colorScheme == .dark ? .white : .black)
+                                .multilineTextAlignment(.leading)
+                            Spacer()
+                        }
+                        .padding(.horizontal)
                     }
-                    .padding(.horizontal)
+
+                    // 写真
+                    if let imageURL = post.imageURL,
+                       let url = URL(string: imageURL) {
+                        AsyncImage(url: url) { phase in
+                            switch phase {
+                            case .empty:
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color.gray.opacity(0.3))
+                                    .frame(height: 200)
+                                    .overlay {
+                                        ProgressView()
+                                            .scaleEffect(0.8)
+                                    }
+                            case .success(let image):
+                                image
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                                    .frame(maxHeight: 200)
+                                    .clipped()
+                                    .cornerRadius(12)
+                                    .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 2)
+                            case .failure(_):
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color.gray.opacity(0.3))
+                                    .frame(height: 200)
+                                    .overlay {
+                                        VStack(spacing: 8) {
+                                            Image(systemName: "photo")
+                                                .foregroundColor(.gray)
+                                                .font(.title2)
+                                            Text("画像を読み込めませんでした")
+                                                .font(.caption)
+                                                .foregroundColor(.gray)
+                                        }
+                                    }
+                            @unknown default:
+                                EmptyView()
+                            }
+                        }
+                        .padding(.horizontal)
+                    }
                 }
                 
                 // アクションボタン
@@ -273,6 +318,75 @@ struct MainSnsView: View {
         .cornerRadius(16)
         .padding(.horizontal)
         .padding(.vertical, 4)
+    }
+    
+    // 画像上に重ねる音楽プレイヤー
+    private func overlayMusicPlayer(for post: PostModel) -> some View {
+        let trackId = extractTrackId(from: post.trackURI)
+        let dominantColor = spotifyManager.getAlbumDominantColor(for: trackId, imageURL: post.albumImageUrl)
+        
+        return HStack(spacing: 12) {
+            // Album artwork (元のサイズと同じ)
+            AsyncImage(url: URL(string: post.albumImageUrl)) { image in
+                image
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: 56, height: 56)
+                    .cornerRadius(8)
+            } placeholder: {
+                Rectangle()
+                    .fill(Color.gray.opacity(0.2))
+                    .frame(width: 56, height: 56)
+                    .cornerRadius(8)
+            }
+            
+            // Track info
+            VStack(alignment: .leading, spacing: 4) {
+                Text(post.name)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.white)
+                    .lineLimit(1)
+                Text(post.artists.first ?? "Unknown Artist")
+                    .font(.system(size: 14))
+                    .foregroundColor(.white.opacity(0.8))
+                    .lineLimit(1)
+            }
+            
+            Spacer()
+            
+            // Play button
+            Button {
+                togglePlayback(post: post)
+            } label: {
+                let isPlaying = playingStates[post.id ?? ""] ?? false
+                Image(systemName: isPlaying ? "pause.circle.fill" : "play.circle.fill")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 32, height: 32)
+                    .foregroundColor(.white)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .background(
+            // 半透明のブラー背景
+            RoundedRectangle(cornerRadius: 16)
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(
+                            LinearGradient(
+                                gradient: Gradient(colors: [
+                                    dominantColor.opacity(0.8),
+                                    dominantColor.opacity(0.6)
+                                ]),
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                )
+        )
+        .shadow(color: Color.black.opacity(0.2), radius: 4, x: 0, y: 2)
     }
     
     private func actionButtons(for post: PostModel) -> some View {

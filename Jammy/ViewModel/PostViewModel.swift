@@ -296,6 +296,13 @@ class PostViewModel: ObservableObject {
      投稿を保存
      */
     func postTrack(trackInfo: TrackInfo, postComment: String) {
+        postTrackWithImage(trackInfo: trackInfo, postComment: postComment, imageURL: nil)
+    }
+    
+    /*
+     画像付き投稿を保存
+     */
+    func postTrackWithImage(trackInfo: TrackInfo, postComment: String, imageURL: String?) {
         let db = Firestore.firestore()
         
         // Get the current user's UID
@@ -307,7 +314,7 @@ class PostViewModel: ObservableObject {
         let postId = String(format: "%010d", abs(Int.random(in: 0...9999999999)))
         
         // 保存するデータの辞書を作成
-        let postData: [String: Any] = [
+        var postData: [String: Any] = [
             "postId": postId,  // Add the random post ID
             "postUser": uid, // ポストしたユーザーのid
             "name": trackInfo.item.name,    // 曲名
@@ -321,11 +328,17 @@ class PostViewModel: ObservableObject {
             "previewURL": trackInfo.item.preview_url ?? ""
         ]
         
+        // 画像URLがある場合は追加
+        if let imageURL = imageURL {
+            postData["imageURL"] = imageURL
+        }
         
         // Firestoreのpostsコレクションにデータを保存
         db.collection("posts").document(postId).setData(postData) { error in
             if let error = error {
+                print("投稿エラー: \(error.localizedDescription)")
             } else {
+                print("投稿が正常に保存されました")
             }
         }
     }
@@ -392,7 +405,8 @@ class PostViewModel: ObservableObject {
                             postTime: (postData["postTime"] as? Timestamp)?.dateValue() ?? Date(),
                             postUser: postData["postUser"] as? String ?? "",
                             likeCount: postData["likeCount"] as? Int ?? 0,
-                            previewURL: postData["previewURL"] as? String ?? ""
+                            previewURL: postData["previewURL"] as? String ?? "",
+                            imageURL: postData["imageURL"] as? String
                         )
                     } catch {
                         return nil
