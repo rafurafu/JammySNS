@@ -9,6 +9,7 @@
 import SwiftUI
 import FirebaseAuth
 import FirebaseFirestore
+import AVFoundation
 
 struct MainSnsView: View {
     @StateObject private var postViewModel = PostViewModel()
@@ -20,7 +21,9 @@ struct MainSnsView: View {
     @State private var commentSheetPost: PostModel?
     @State private var isLiking = false
     @State private var showError = false
-    @State private var playing: Bool = true
+    @State private var playingStates: [String: Bool] = [:]
+    @State private var currentlyPlayingPostId: String? = nil
+    @State private var playbackPositions: [String: Int] = [:]
     @State private var errorMessage = ""
     @Binding var navigationPath: NavigationPath  // @Bindingとして修正
     @Environment(\.colorScheme) var colorScheme
@@ -79,6 +82,14 @@ struct MainSnsView: View {
             } catch {
                 showError = true
                 errorMessage = error.localizedDescription
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .AVPlayerItemDidPlayToEndTime)) { _ in
+            // プレビュー再生が終了した際に状態をリセット
+            if let currentlyPlayingId = currentlyPlayingPostId {
+                playingStates[currentlyPlayingId] = false
+                playbackPositions[currentlyPlayingId] = 0 // 終了時は位置をリセット
+                currentlyPlayingPostId = nil
             }
         }
         .alert("エラー", isPresented: $showError) {
@@ -237,9 +248,10 @@ struct MainSnsView: View {
             
             // Play button
             Button {
-                playTrack(post: post)
+                togglePlayback(post: post)
             } label: {
-                Image(systemName: playing ? "play.circle.fill" : "play")
+                let isPlaying = playingStates[post.id ?? ""] ?? false
+                Image(systemName: isPlaying ? "pause.circle.fill" : "play.circle.fill")
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .frame(width: 32, height: 32)
@@ -362,7 +374,14 @@ struct MainSnsView: View {
         } else {
             print("ユーザー情報: \(userProfile)")
             navigationPath = NavigationPath()
-            navigationPath.append(AppNavigationDestination.profile(userProfile))
+            
+            // 自分のユーザーIDかチェック
+            if let currentUserId = Auth.auth().currentUser?.uid,
+               userProfile.id == currentUserId {
+                navigationPath.append(AppNavigationDestination.selfProfile)
+            } else {
+                navigationPath.append(AppNavigationDestination.profile(userProfile))
+            }
         }
     }
     
@@ -409,18 +428,83 @@ struct MainSnsView: View {
         }
     }
     
-    private func playTrack(post: PostModel) {
+    private func togglePlayback(post: PostModel) {
+        guard let postId = post.id else { return }
+        
+        let isCurrentlyPlaying = playingStates[postId] ?? false
+        
         Task {
             do {
-                try await spotifyManager.playTrack(
-                    accessToken: spotifyManager.accessToken,
-                    trackURI: post.trackURI,
-                    previewURL: post.previewURL,
-                    positionMs: 0
-                )
+                if isCurrentlyPlaying {
+                    // 現在再生中の場合は停止位置を記録してから停止
+                    var currentPosition: Int = 0
+                    
+                    if spotifyManager.isPlayingPreview {
+                        // プレビュー再生の場合
+                        let previewPosition = spotifyManager.getPreviewPlaybackPosition()
+                        currentPosition = Int(previewPosition * 1000) // 秒をミリ秒に変換
+                    } else {
+                        // Spotify再生の場合
+                        if let position = try await spotifyManager.getPlayerProgress() {
+                            currentPosition = position
+                        }
+                    }
+                    
+                    await MainActor.run {
+                        playbackPositions[postId] = currentPosition
+                    }
+                    
+                    try await spotifyManager.stopTrack(accessToken: spotifyManager.accessToken)
+                    await MainActor.run {
+                        playingStates[postId] = false
+                        currentlyPlayingPostId = nil
+                    }
+                } else {
+                    // 他の曲が再生中の場合は先に停止位置を記録してから停止
+                    if let currentlyPlayingId = currentlyPlayingPostId {
+                        var currentPosition: Int = 0
+                        
+                        if spotifyManager.isPlayingPreview {
+                            // プレビュー再生の場合
+                            let previewPosition = spotifyManager.getPreviewPlaybackPosition()
+                            currentPosition = Int(previewPosition * 1000) // 秒をミリ秒に変換
+                        } else {
+                            // Spotify再生の場合
+                            if let position = try await spotifyManager.getPlayerProgress() {
+                                currentPosition = position
+                            }
+                        }
+                        
+                        await MainActor.run {
+                            playbackPositions[currentlyPlayingId] = currentPosition
+                        }
+                        
+                        try await spotifyManager.stopTrack(accessToken: spotifyManager.accessToken)
+                        await MainActor.run {
+                            playingStates[currentlyPlayingId] = false
+                        }
+                    }
+                    
+                    // 保存された位置から再生（なければ最初から）
+                    let startPosition = playbackPositions[postId] ?? 0
+                    
+                    try await spotifyManager.playTrack(
+                        accessToken: spotifyManager.accessToken,
+                        trackURI: post.trackURI,
+                        previewURL: post.previewURL,
+                        positionMs: startPosition
+                    )
+                    
+                    await MainActor.run {
+                        playingStates[postId] = true
+                        currentlyPlayingPostId = postId
+                    }
+                }
             } catch {
-                showError = true
-                errorMessage = "再生に失敗しました: \(error.localizedDescription)"
+                await MainActor.run {
+                    showError = true
+                    errorMessage = "操作に失敗しました: \(error.localizedDescription)"
+                }
             }
         }
     }

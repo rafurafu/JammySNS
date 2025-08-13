@@ -61,6 +61,7 @@ class SpotifyMusicManager: NSObject, ObservableObject {
     }
     @Published var isSpotifyInstalled: Bool = false //　Spotifyアプリがインストールされているか
     @Published var isPlayingPreview: Bool = false
+    private var previewPlaybackPosition: TimeInterval = 0
     @Published var authURL: URL? = nil
     @Published var showingSafariView = false
     private var previewPlayer: AVPlayer?
@@ -632,7 +633,8 @@ class SpotifyMusicManager: NSObject, ObservableObject {
             guard let previewURL = previewURL, !previewURL.isEmpty else {
                 throw SpotifyPlaybackError.previewNotAvailable
             }
-            try await playPreviewTrack(previewURL: previewURL)
+            let startPositionSeconds = TimeInterval((positionMs ?? 0)) / 1000.0
+            try await playPreviewTrack(previewURL: previewURL, startPosition: startPositionSeconds)
             return
         }
         
@@ -736,13 +738,20 @@ class SpotifyMusicManager: NSObject, ObservableObject {
         }
     }
     
-    private func playPreviewTrack(previewURL: String) async throws {
+    private func playPreviewTrack(previewURL: String, startPosition: TimeInterval = 0) async throws {
         await MainActor.run {
             stopPreview() // 既存の再生を停止
             
             if let url = URL(string: previewURL) {
                 let playerItem = AVPlayerItem(url: url)
                 previewPlayer = AVPlayer(playerItem: playerItem)
+                
+                // 開始位置を設定
+                if startPosition > 0 {
+                    let startTime = CMTime(seconds: startPosition, preferredTimescale: 1000)
+                    previewPlayer?.seek(to: startTime)
+                }
+                
                 previewPlayer?.play()
                 isPlayingPreview = true
                 
@@ -758,9 +767,26 @@ class SpotifyMusicManager: NSObject, ObservableObject {
     
     // プレビュー停止
     func stopPreview() {
+        // 現在の再生位置を保存
+        if let player = previewPlayer {
+            previewPlaybackPosition = CMTimeGetSeconds(player.currentTime())
+        }
         previewPlayer?.pause()
         previewPlayer = nil
         isPlayingPreview = false
+    }
+    
+    // プレビュー再生位置を取得
+    func getPreviewPlaybackPosition() -> TimeInterval {
+        if let player = previewPlayer {
+            return CMTimeGetSeconds(player.currentTime())
+        }
+        return previewPlaybackPosition
+    }
+    
+    // プレビュー再生位置をリセット
+    func resetPreviewPlaybackPosition() {
+        previewPlaybackPosition = 0
     }
     
     // Spotifyのプレイヤーステートを表す構造体
