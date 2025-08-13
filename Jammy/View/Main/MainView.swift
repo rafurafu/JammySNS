@@ -22,7 +22,7 @@ struct MainView: View {
     @State private var indicatorOffset: CGFloat = 0
     @Environment(\.colorScheme) var colorScheme
     @Binding var navigationPath: NavigationPath
-    @State private var showPlaylistSelection = false
+    @State private var playlistSheetData: PlaylistSheetData?
     @State private var userPlaylists: [PlaylistModel] = []
     @EnvironmentObject var spotifyManager: SpotifyMusicManager
     
@@ -85,7 +85,10 @@ struct MainView: View {
                                     let playlists = try await spotifyManager.getPlaylist(accessToken: spotifyManager.accessToken)
                                     await MainActor.run {
                                         userPlaylists = playlists
-                                        showPlaylistSelection = true
+                                        playlistSheetData = PlaylistSheetData(
+                                            playlists: playlists,
+                                            currentTrack: currentPost
+                                        )
                                     }
                                 } catch {
                                     // エラーハンドリング
@@ -111,11 +114,13 @@ struct MainView: View {
                                 .padding(.top, 60)
                                 .padding(.trailing, 40)
                         }
-                        .sheet(isPresented: $showPlaylistSelection) {
+                        .sheet(item: $playlistSheetData) { data in
                             MainPlaylistView(
-                                playlists: userPlaylists,
-                                currentTrack: currentPost
+                                playlists: data.playlists,
+                                currentTrack: data.currentTrack
                             )
+                            .presentationDetents([.fraction(0.7)])
+                            .presentationDragIndicator(.visible)
                         }
                     }
                     .frame(height: 110)
@@ -125,6 +130,7 @@ struct MainView: View {
                 }
                 .background(colorScheme == .dark ? Color(red: 0.2, green: 0.2, blue: 0.2) : Color.white)
                 .frame(height: 150)
+                .zIndex(1000)
                 
                 TabView(selection: $selectedTab) {
                     MainSnsView(navigationPath: $navigationPath)
@@ -133,14 +139,9 @@ struct MainView: View {
                         .frame(width: geometry.size.width, height: geometry.size.height - 150)
                         .tag(0)
                     
-                    MainVerticalView(
-                        isComment: $isComment,
-                        isPlaylist: $isPlaylist,
-                        postUserInfo: $postUserInfo,
-                        navigationPath: $navigationPath,
-                        currentPost: $currentPost,
-                        scrollToTop: $scrollToTop  // scrollToTopを渡す
-                    )
+                    MainFollowingView(navigationPath: $navigationPath)
+                        .environmentObject(blockViewModel)
+                        .environmentObject(spotifyManager)
                         .frame(width: geometry.size.width, height: geometry.size.height - 150)
                         .tag(1)
                 }
@@ -178,7 +179,7 @@ struct MainView: View {
                         selectedTab = 1
                     }
                 } label: {
-                    Text("音楽")
+                    Text("フォロー中")
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundColor(selectedTab == 1 ?
                             (colorScheme == .dark ? Color.white : Color.black) :
@@ -193,11 +194,17 @@ struct MainView: View {
                     .frame(height: 3)
                 
                 Rectangle()
-                    .fill(Color(red: 1.0, green: 0.41, blue: 0.71))
+                    .fill(Color(red: 0.07, green: 0.6, blue: 0.9))
                     .frame(width: width / 2, height: 3)
                     .offset(x: indicatorOffset)
             }
         }
         .background(colorScheme == .dark ? Color(red: 0.2, green: 0.2, blue: 0.2) : Color.white)
     }
+}
+
+struct PlaylistSheetData: Identifiable {
+    let id = UUID()
+    let playlists: [PlaylistModel]
+    let currentTrack: PostModel
 }

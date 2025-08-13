@@ -1,16 +1,15 @@
 //
-//  Main2Postview.swift
+//  MainFollowingView.swift
 //  Jammy
 //
-//  Created by 柳井大輔 on 2024/10/21.
+//  フォロー中のユーザーの投稿を表示するビュー
 //
-
 
 import SwiftUI
 import FirebaseAuth
 import FirebaseFirestore
 
-struct MainSnsView: View {
+struct MainFollowingView: View {
     @StateObject private var postViewModel = PostViewModel()
     @EnvironmentObject var spotifyManager: SpotifyMusicManager
     @EnvironmentObject var blockViewModel: BlockViewModel
@@ -22,70 +21,35 @@ struct MainSnsView: View {
     @State private var showError = false
     @State private var playing: Bool = true
     @State private var errorMessage = ""
-    @Binding var navigationPath: NavigationPath  // @Bindingとして修正
+    @Binding var navigationPath: NavigationPath
     @Environment(\.colorScheme) var colorScheme
     private let favoritePostManager = FavoritePostManager()
 
     // MARK: - Body
     var body: some View {
-        ScrollView {
-            LazyVStack(spacing: 0) {
-                ForEach(postViewModel.posts.indices, id: \.self) { index in
-                    let post = postViewModel.posts[index]
-                    postCell(for: post, index: index)
-                    .onAppear {
-                        loadLikeState(for: post)
-                        Task {
-                            await fetchUserProfile(for: post.postUser)
-                        }
-                        
-                        // 色情報をバックグラウンドで取得開始
-                        let trackId = extractTrackId(from: post.trackURI)
-                        _ = spotifyManager.getAlbumDominantColor(for: trackId, imageURL: post.albumImageUrl)
-                        
-                        // 無限スクロール
-                        if post.id == postViewModel.posts.last?.id {
-                            Task {
-                                try? await postViewModel.loadMoreTrendPosts(blockedUsers: blockViewModel.blockedUsers)
-                            }
-                        }
-                    }
-                }
+        VStack {
+            Spacer()
+            
+            VStack(spacing: 20) {
+                Image(systemName: "clock.fill")
+                    .font(.system(size: 60))
+                    .foregroundColor(.gray.opacity(0.6))
                 
-                if postViewModel.isLoading {
-                    ProgressView()
-                        .padding()
-                }
+                Text("Coming Soon")
+                    .font(.title)
+                    .fontWeight(.bold)
+                    .foregroundColor(colorScheme == .dark ? .white : .black)
+                
+                Text("フォロー中のユーザーの投稿表示機能は\n近日公開予定です")
+                    .font(.body)
+                    .foregroundColor(.gray)
+                    .multilineTextAlignment(.center)
             }
-            .padding(.vertical)
+            
+            Spacer()
         }
-        .refreshable {
-            Task {
-                try? await postViewModel.refreshTrendPosts(blockedUsers: blockViewModel.blockedUsers)
-                // リフレッシュ後に全ての投稿のいいね状態を再読み込み
-                await withTaskGroup(of: Void.self) { group in
-                    for post in postViewModel.posts {
-                        group.addTask {
-                            loadLikeState(for: post)
-                            await fetchUserProfile(for: post.postUser)
-                        }
-                    }
-                }
-            }
-        }
-        .task {
-            do {
-                try await postViewModel.getInitialTrendPosts(blockedUsers: blockViewModel.blockedUsers)
-            } catch {
-                showError = true
-                errorMessage = error.localizedDescription
-            }
-        }
-        .alert("エラー", isPresented: $showError) {
-            Button("OK", role: .cancel) { }
-        } message: {
-            Text(errorMessage)
-        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(colorScheme == .dark ? Color(red: 0.2, green: 0.2, blue: 0.2) : Color.white)
     }
     
     // MARK: - Components
@@ -104,7 +68,7 @@ struct MainSnsView: View {
                         Text(post.postComment)
                             .font(.system(size: 15))
                             .foregroundColor(colorScheme == .dark ? .white : .black)
-                            .multilineTextAlignment(.leading) // テキストの行揃えも左に
+                            .multilineTextAlignment(.leading)
                         Spacer()
                     }
                     .padding(.horizontal)
@@ -378,12 +342,12 @@ struct MainSnsView: View {
                 let currentLikeState = likes[postId] ?? false
                 
                 if currentLikeState {
-                    try await FavoritePostManager.shared.removeFavoritePostWithCache(
+                    try await FavoritePostManager.shared.removeFavoritePost(
                         userId: userId,
                         postId: postId
                     )
                 } else {
-                    try await FavoritePostManager.shared.saveFavoritePostWithCache(
+                    try await FavoritePostManager.shared.saveFavoritePost(
                         userId: userId,
                         postId: postId
                     )

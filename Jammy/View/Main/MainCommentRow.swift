@@ -12,39 +12,43 @@ struct MainCommentRow: View {
     @Environment(\.colorScheme) var colorScheme
     
     var body: some View {
-        VStack (alignment: .leading){
+        HStack(alignment: .top, spacing: 12) {
+            // プロフィール画像
+            AsyncImage(url: URL(string: comment.userIconURL)) { image in
+                image
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: 32, height: 32)
+                    .clipShape(Circle())
+            } placeholder: {
+                Circle()
+                    .fill(Color.gray.opacity(0.3))
+                    .frame(width: 32, height: 32)
+            }
             
-            Divider()
-            
-            HStack(alignment: .top, spacing: 15) {
-                AsyncImage(url: URL(string: comment.userIconURL)) { image in
-                    image
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 40)
-                        .clipShape(Circle())
-                } placeholder: {
-                    Circle()
-                        .fill(Color.gray.opacity(0.3))
-                        .frame(width: 40)
+            // コメント内容
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text(comment.userName)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(colorScheme == .dark ? .white : .black)
+                    
+                    Text(formatDate(comment.commentTime))
+                        .font(.system(size: 12))
+                        .foregroundColor(.gray)
+                    
+                    Spacer()
                 }
                 
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(comment.userName)
-                        .font(.headline)
-                        .foregroundColor(Color.primary)
-                        .padding(.top, 4)
-                    
-                    Text(comment.content)
-                        .font(.subheadline)
-                        .foregroundColor(colorScheme == .dark ? Color.white : Color(red: 0.4, green: 0.4, blue: 0.4))
-                }
+                Text(comment.content)
+                    .font(.system(size: 14))
+                    .foregroundColor(colorScheme == .dark ? .white : .black)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .frame(width: .infinity)
-            .frame(minHeight: 70)
-            .padding(.leading, 10)
-            
         }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
     }
     
     private func formatDate(_ date: Date) -> String {

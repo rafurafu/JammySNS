@@ -222,7 +222,7 @@ struct MainVerticalView: View {
         defer { isLoading = false }
         
         do {
-            try await postViewModel.getFirstPost(blockedUsers: blockViewModel.blockedUsers)
+            try await postViewModel.getFollowingPosts(blockedUsers: blockViewModel.blockedUsers)
             if !postViewModel.posts.isEmpty {
                 let initialPost = postViewModel.posts[0]
                 await MainActor.run {

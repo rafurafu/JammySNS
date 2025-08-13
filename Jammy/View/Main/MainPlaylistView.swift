@@ -19,6 +19,7 @@ struct MainPlaylistView: View {
     
     @State var playlists: [PlaylistModel]
     @State private var selectedPlaylists: Set<String> = []
+    @State private var isLoading: Bool = false
     @EnvironmentObject var spotifyManager: SpotifyMusicManager
     var currentTrack: PostModel
     @Environment(\.colorScheme) var colorScheme
@@ -66,23 +67,49 @@ struct MainPlaylistView: View {
             
             // プレイリストリスト
             ScrollView {
-                LazyVStack(spacing: 12) {
-                    ForEach(playlists) { playlist in
-                        PlaylistRowView(
-                            playlist: playlist,
-                            isSelected: selectedPlaylists.contains(playlist.id),
-                            onTap: {
-                                if selectedPlaylists.contains(playlist.id) {
-                                    selectedPlaylists.remove(playlist.id)
-                                } else {
-                                    selectedPlaylists.insert(playlist.id)
-                                }
-                            }
-                        )
+                if isLoading {
+                    VStack(spacing: 16) {
+                        ProgressView()
+                            .scaleEffect(1.2)
+                        Text("プレイリストを読み込み中...")
+                            .font(.system(size: 14))
+                            .foregroundColor(.gray)
                     }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .padding(.top, 80)
+                } else if playlists.isEmpty {
+                    VStack(spacing: 16) {
+                        Image(systemName: "music.note.list")
+                            .font(.system(size: 40))
+                            .foregroundColor(.gray.opacity(0.5))
+                        Text("プレイリストが見つかりません")
+                            .font(.system(size: 16))
+                            .foregroundColor(.gray)
+                        Text("Spotifyでプレイリストを作成してください")
+                            .font(.system(size: 14))
+                            .foregroundColor(.gray.opacity(0.8))
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .padding(.top, 60)
+                } else {
+                    LazyVStack(spacing: 12) {
+                        ForEach(playlists) { playlist in
+                            PlaylistRowView(
+                                playlist: playlist,
+                                isSelected: selectedPlaylists.contains(playlist.id),
+                                onTap: {
+                                    if selectedPlaylists.contains(playlist.id) {
+                                        selectedPlaylists.remove(playlist.id)
+                                    } else {
+                                        selectedPlaylists.insert(playlist.id)
+                                    }
+                                }
+                            )
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 12)
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 12)
             }
             .background(colorScheme == .dark ? Color.black : Color.white)
         }
