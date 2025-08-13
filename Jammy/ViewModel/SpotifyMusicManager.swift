@@ -10,6 +10,7 @@ import SpotifyiOS
 import CommonCrypto
 import AVFoundation
 import SwiftKeychainWrapper
+import UIKit
 
 class SpotifyMusicManager: NSObject, ObservableObject {
     
@@ -64,6 +65,11 @@ class SpotifyMusicManager: NSObject, ObservableObject {
     @Published var showingSafariView = false
     private var previewPlayer: AVPlayer?
     private let maxConnectionAttempts = 3
+    
+    // 色キャッシュシステム
+    @Published var colorCache: [String: Color] = [:]
+    private let colorCacheQueue = DispatchQueue(label: "colorCache", qos: .background)
+    private var imageDownloadTasks: [String: Task<Color?, Never>] = [:]
     private let clientID = "e8f692a2d12e4d2699692c38b2c7e1d6"
     private let redirectURI = URL(string: "spotify-ios-quick-start://callback")!
     private let clientSecretID = "98e6b76d2d114c11843da6f2b0400cd1"
@@ -1026,6 +1032,174 @@ class SpotifyMusicManager: NSObject, ObservableObject {
         async let globalPlaylist = fetchPlaylist(id: globalTop50Id)
         
         return try await (japan: japanPlaylist, global: globalPlaylist)
+    }
+    
+    // MARK: - 色抽出機能
+    
+    /// アルバムアートワークから主要色を抽出（パフォーマンス最適化版）
+    func getAlbumDominantColor(for trackId: String, imageURL: String) -> Color {
+        // すでにキャッシュされている場合は即座に返す
+        if let cachedColor = colorCache[trackId] {
+            print("キャッシュから色取得: \(trackId) -> \(cachedColor)")
+            return cachedColor
+        }
+        
+        // バックグラウンドで色抽出を開始
+        if imageDownloadTasks[trackId] == nil {
+            print("色抽出開始: \(trackId) - \(imageURL)")
+            imageDownloadTasks[trackId] = Task {
+                await extractAndCacheColor(trackId: trackId, imageURL: imageURL)
+            }
+        }
+        
+        // デフォルト色を返す（非同期で色が更新される）
+        return Color.gray.opacity(0.3)
+    }
+    
+    /// アルバムアートワークから色を抽出してキャッシュに保存
+    private func extractAndCacheColor(trackId: String, imageURL: String) async -> Color? {
+        guard let url = URL(string: imageURL) else { return nil }
+        
+        do {
+            // 画像をダウンロード
+            let (data, _) = try await URLSession.shared.data(from: url)
+            guard let uiImage = UIImage(data: data) else { return nil }
+            
+            // 軽量化された画像で色抽出（パフォーマンス向上）
+            let resizedImage = resizeImage(uiImage, to: CGSize(width: 50, height: 50))
+            let dominantColor = extractDominantColor(from: resizedImage)
+            
+            // メインスレッドでキャッシュを更新
+            await MainActor.run {
+                print("色抽出成功: \(trackId) -> \(dominantColor)")
+                colorCache[trackId] = dominantColor
+                imageDownloadTasks.removeValue(forKey: trackId)
+            }
+            
+            return dominantColor
+        } catch {
+            print("色抽出エラー: \(error)")
+            await MainActor.run {
+                imageDownloadTasks.removeValue(forKey: trackId)
+            }
+            return nil
+        }
+    }
+    
+    /// 画像をリサイズ（パフォーマンス向上のため）
+    private func resizeImage(_ image: UIImage, to size: CGSize) -> UIImage {
+        UIGraphicsBeginImageContextWithOptions(size, false, 0.0)
+        image.draw(in: CGRect(origin: .zero, size: size))
+        let resizedImage = UIGraphicsGetImageFromCurrentImageContext() ?? image
+        UIGraphicsEndImageContext()
+        return resizedImage
+    }
+    
+    /// 画像から主要色を抽出
+    private func extractDominantColor(from image: UIImage) -> Color {
+        guard let cgImage = image.cgImage else { return Color.gray }
+        
+        let width = cgImage.width
+        let height = cgImage.height
+        let bytesPerPixel = 4
+        let bytesPerRow = bytesPerPixel * width
+        let bitsPerComponent = 8
+        
+        var pixelData = [UInt8](repeating: 0, count: height * width * bytesPerPixel)
+        
+        let context = CGContext(
+            data: &pixelData,
+            width: width,
+            height: height,
+            bitsPerComponent: bitsPerComponent,
+            bytesPerRow: bytesPerRow,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue
+        )
+        
+        context?.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
+        
+        // 色の統計を取る（サンプリングで高速化）
+        var redTotal: Int = 0
+        var greenTotal: Int = 0
+        var blueTotal: Int = 0
+        var sampleCount: Int = 0
+        
+        // 10x10のグリッドでサンプリング（パフォーマンス向上）
+        let sampleStep = max(1, min(width, height) / 10)
+        
+        for y in stride(from: 0, to: height, by: sampleStep) {
+            for x in stride(from: 0, to: width, by: sampleStep) {
+                let pixelIndex = (y * width + x) * bytesPerPixel
+                
+                if pixelIndex + 2 < pixelData.count {
+                    let red = Int(pixelData[pixelIndex])
+                    let green = Int(pixelData[pixelIndex + 1])
+                    let blue = Int(pixelData[pixelIndex + 2])
+                    
+                    // 極端に暗い・明るい色をスキップ
+                    let brightness = (red + green + blue) / 3
+                    if brightness > 30 && brightness < 220 {
+                        redTotal += red
+                        greenTotal += green
+                        blueTotal += blue
+                        sampleCount += 1
+                    }
+                }
+            }
+        }
+        
+        guard sampleCount > 0 else { return Color.gray }
+        
+        let avgRed = Double(redTotal) / Double(sampleCount) / 255.0
+        let avgGreen = Double(greenTotal) / Double(sampleCount) / 255.0
+        let avgBlue = Double(blueTotal) / Double(sampleCount) / 255.0
+        
+        // 彩度を調整してSpotifyライクな色に
+        let adjustedColor = adjustColorSaturation(
+            red: avgRed,
+            green: avgGreen,
+            blue: avgBlue
+        )
+        
+        return adjustedColor
+    }
+    
+    /// 彩度を調整してより魅力的な色に
+    private func adjustColorSaturation(red: Double, green: Double, blue: Double) -> Color {
+        // HSBに変換
+        let max = Swift.max(red, green, blue)
+        let min = Swift.min(red, green, blue)
+        let delta = max - min
+        
+        var hue: Double = 0
+        let brightness = max
+        let saturation = max == 0 ? 0 : delta / max
+        
+        if delta != 0 {
+            if max == red {
+                hue = ((green - blue) / delta).truncatingRemainder(dividingBy: 6)
+            } else if max == green {
+                hue = (blue - red) / delta + 2
+            } else {
+                hue = (red - green) / delta + 4
+            }
+            hue *= 60
+            if hue < 0 { hue += 360 }
+        }
+        
+        // 彩度を適度に調整（Spotifyライクに）
+        let adjustedSaturation = Swift.min(1.0, saturation * 1.2)
+        let adjustedBrightness = Swift.max(0.3, Swift.min(0.85, brightness))
+        
+        return Color(hue: hue / 360, saturation: adjustedSaturation, brightness: adjustedBrightness)
+    }
+    
+    /// キャッシュをクリア
+    func clearColorCache() {
+        colorCache.removeAll()
+        imageDownloadTasks.values.forEach { $0.cancel() }
+        imageDownloadTasks.removeAll()
     }
 }
 

@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		3411EC442C9BD71D00B0825D /* MainPostView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3411EC432C9BD71D00B0825D /* MainPostView.swift */; };
+		7A12B1BE274C42A1965A3FDE /* MainFollowingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A12B1BE274C42A1965A3FDF /* MainFollowingView.swift */; };
 		3437E93D2CD063290024EBAD /* FirebaseDatabase in Frameworks */ = {isa = PBXBuildFile; productRef = 3437E93C2CD063290024EBAD /* FirebaseDatabase */; };
 		3437E93F2CD063290024EBAD /* FirebaseDatabaseSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 3437E93E2CD063290024EBAD /* FirebaseDatabaseSwift */; };
 		3437E9432CD06B610024EBAD /* SwiftKeychainWrapper in Frameworks */ = {isa = PBXBuildFile; productRef = 3437E9422CD06B610024EBAD /* SwiftKeychainWrapper */; };
@@ -102,6 +103,7 @@
 
 /* Begin PBXFileReference section */
 		3411EC432C9BD71D00B0825D /* MainPostView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainPostView.swift; sourceTree = "<group>"; };
+		7A12B1BE274C42A1965A3FDF /* MainFollowingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainFollowingView.swift; sourceTree = "<group>"; };
 		34612FA92C193EE500A6FA28 /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainView.swift; sourceTree = "<group>"; };
 		3467DD452CF9790F0082A6D0 /* TermsViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TermsViewModel.swift; sourceTree = "<group>"; };
 		3467DD512CFC19430082A6D0 /* BlockViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlockViewModel.swift; sourceTree = "<group>"; };
@@ -217,6 +219,7 @@
 				34612FA92C193EE500A6FA28 /* MainView.swift */,
 				34CDEEC72BEDB9F60001330A /* MainVerticalView.swift */,
 				3411EC432C9BD71D00B0825D /* MainPostView.swift */,
+				7A12B1BE274C42A1965A3FDF /* MainFollowingView.swift */,
 				5034C58D2CC5F33A00ACFFF9 /* MainSnsView.swift */,
 				3495CFBA2C0EAF0700EAF628 /* MainPlaylistView.swift */,
 				34C992672CBF621A0069B01F /* MainPlaylistRow.swift */,
@@ -561,6 +564,7 @@
 				3495CFBB2C0EAF0700EAF628 /* MainPlaylistView.swift in Sources */,
 				34EC937E2CC87545007F3BB4 /* ProfilePostView.swift in Sources */,
 				3411EC442C9BD71D00B0825D /* MainPostView.swift in Sources */,
+				7A12B1BE274C42A1965A3FDE /* MainFollowingView.swift in Sources */,
 				502ABAE72C3B73CE00B60DED /* SettingPrivacyBlockView.swift in Sources */,
 				3467DD462CF9790F0082A6D0 /* TermsViewModel.swift in Sources */,
 				5034180E2C3CFE6F006D582D /* KeyboardDismiss.swift in Sources */,

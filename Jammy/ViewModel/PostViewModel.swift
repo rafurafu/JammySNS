@@ -91,13 +91,125 @@ class PostViewModel: ObservableObject {
         if currentIndex == posts.count - 2 && !isLoading && hasMorePosts {
             isLoading = true
             do {
-                try await loadMorePosts(blockedUsers: blockedUsers)
+                try await loadMoreFollowingPosts(blockedUsers: blockedUsers)
             } catch {
             }
             isLoading = false
         }
     }
     
+    // フォロー中ユーザーの投稿を取得
+    func getFollowingPosts(blockedUsers: Set<String>) async throws {
+        guard let currentUserId = Auth.auth().currentUser?.uid else {
+            throw NSError(domain: "AuthError", code: 0, userInfo: [NSLocalizedDescriptionKey: "User not authenticated"])
+        }
+        
+        do {
+            // フォロー中のユーザーIDを取得
+            let followingDoc = try await db.collection("users")
+                .document(currentUserId)
+                .collection("social")
+                .document("following")
+                .getDocument()
+            
+            guard let data = followingDoc.data(),
+                  let followingIds = data["userIds"] as? [String],
+                  !followingIds.isEmpty else {
+                // フォロー中のユーザーがいない場合は空の配列を返す
+                await MainActor.run {
+                    self.posts = []
+                    self.hasMorePosts = false
+                }
+                return
+            }
+            
+            // フォロー中のユーザーの投稿を取得（最新順）
+            let querySnapshot = try await db.collection("posts")
+                .whereField("postUser", in: followingIds)
+                .order(by: "postTime", descending: true)
+                .limit(to: batchSize)
+                .getDocuments()
+            
+            let fetchedPosts = querySnapshot.documents.compactMap { document -> PostModel? in
+                try? document.data(as: PostModel.self)
+            }.filter { !blockedUsers.contains($0.postUser) }
+            
+            await MainActor.run {
+                self.posts = fetchedPosts
+                self.lastDocument = querySnapshot.documents.last
+                self.hasMorePosts = !querySnapshot.documents.isEmpty
+            }
+            
+        } catch {
+            throw error
+        }
+    }
+    
+    // フォロー中ユーザーの追加投稿を取得（無限スクロール用）
+    func loadMoreFollowingPosts(blockedUsers: Set<String>) async throws {
+        guard !isLoading && hasMorePosts, let lastDocument = lastDocument else { return }
+        guard let currentUserId = Auth.auth().currentUser?.uid else {
+            throw NSError(domain: "AuthError", code: 0, userInfo: [NSLocalizedDescriptionKey: "User not authenticated"])
+        }
+        
+        isLoading = true
+        
+        do {
+            // フォロー中のユーザーIDを取得
+            let followingDoc = try await db.collection("users")
+                .document(currentUserId)
+                .collection("social")
+                .document("following")
+                .getDocument()
+            
+            guard let data = followingDoc.data(),
+                  let followingIds = data["userIds"] as? [String],
+                  !followingIds.isEmpty else {
+                await MainActor.run {
+                    self.hasMorePosts = false
+                    self.isLoading = false
+                }
+                return
+            }
+            
+            let querySnapshot = try await db.collection("posts")
+                .whereField("postUser", in: followingIds)
+                .order(by: "postTime", descending: true)
+                .limit(to: batchSize)
+                .start(afterDocument: lastDocument)
+                .getDocuments()
+            
+            let newPosts = querySnapshot.documents.compactMap { document -> PostModel? in
+                try? document.data(as: PostModel.self)
+            }.filter { !blockedUsers.contains($0.postUser) }
+            
+            if !newPosts.isEmpty {
+                await MainActor.run {
+                    self.posts.append(contentsOf: newPosts)
+                    self.lastDocument = querySnapshot.documents.last
+                }
+            }
+            
+            await MainActor.run {
+                self.hasMorePosts = !querySnapshot.documents.isEmpty
+                self.isLoading = false
+            }
+            
+        } catch {
+            await MainActor.run {
+                self.isLoading = false
+            }
+            throw error
+        }
+    }
+    
+    // フォロー中ユーザーの投稿を更新
+    func refreshFollowingPosts(blockedUsers: Set<String>) async throws {
+        self.lastDocument = nil
+        self.hasMorePosts = true
+        try await getFollowingPosts(blockedUsers: blockedUsers)
+    }
+
     // 初期投稿を取得
     func getFirstPost(blockedUsers: Set<String>) async throws {
         do {

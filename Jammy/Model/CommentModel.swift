@@ -21,20 +21,54 @@ struct CommentModel: Identifiable, Codable {
 class CommentViewModel: ObservableObject {
     @Published var comments: [CommentModel] = []
     @Published var newComment: String = ""
+    @Published var isLoading: Bool = false
     private var db = Firestore.firestore()
+    private var listener: ListenerRegistration?
     
     func fetchComments(for postId: String) {
-        db.collection("posts").document(postId).collection("comments")
+        // 既存のリスナーを削除
+        listener?.remove()
+        
+        // ローディング開始
+        DispatchQueue.main.async {
+            self.isLoading = true
+            self.comments = []
+        }
+        
+        // 新しいリスナーを設定
+        listener = db.collection("posts").document(postId).collection("comments")
             .order(by: "commentTime", descending: true)
             .addSnapshotListener { (querySnapshot, error) in
-                guard let documents = querySnapshot?.documents else {
+                DispatchQueue.main.async {
+                    self.isLoading = false
+                }
+                
+                if let error = error {
+                    print("Error fetching comments: \(error)")
                     return
                 }
                 
-                self.comments = documents.compactMap { queryDocumentSnapshot -> CommentModel? in
-                    return try? queryDocumentSnapshot.data(as: CommentModel.self)
+                guard let documents = querySnapshot?.documents else {
+                    print("No comments found for post: \(postId)")
+                    DispatchQueue.main.async {
+                        self.comments = []
+                    }
+                    return
+                }
+                
+                print("Fetched \(documents.count) comments for post: \(postId)")
+                
+                DispatchQueue.main.async {
+                    self.comments = documents.compactMap { queryDocumentSnapshot -> CommentModel? in
+                        return try? queryDocumentSnapshot.data(as: CommentModel.self)
+                    }
+                    print("Comments updated: \(self.comments.count) items")
                 }
             }
+    }
+    
+    deinit {
+        listener?.remove()
     }
     
     func addComment(to postId: String, userId: String, userName: String, userIconURL: String) {
