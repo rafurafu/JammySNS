@@ -51,6 +51,8 @@ struct ProfileView: View {
                         NavigationLink(destination: ProfileAccountSettingView()) {
                             //VStack {
                             HStack {
+                                Spacer()
+                                
                                 if let profileImage = profileImage {
                                     Image(uiImage: profileImage)
                                         .resizable()
@@ -87,8 +89,10 @@ struct ProfileView: View {
                                         .fontWeight(.medium)
                                 }
                                 .padding(.leading, 10)
+                                
                                 Spacer()
-                            }.padding(.leading, 10)
+                            }
+                            .padding(.trailing, 10)
                             //}
                         }
                         .frame(alignment: .center)
@@ -107,6 +111,8 @@ struct ProfileView: View {
                         }
                     }
                     HStack(spacing: 10) {
+                        Spacer()
+                        
                         NavigationLink(destination: FollowContainerView()) {
                             VStack(spacing: 4) {
                                 Text("\(socialViewModel.followingCount)")
@@ -146,7 +152,10 @@ struct ProfileView: View {
                                 .foregroundColor(.gray)
                         }
                         .frame(width: 70)
+                        
+                        Spacer()
                     }
+                    .padding(.trailing, 10)
                     .padding(.vertical, 8)
                     .padding(.bottom, 5)
                     

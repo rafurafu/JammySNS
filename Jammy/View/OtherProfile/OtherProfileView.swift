@@ -62,6 +62,8 @@ struct OtherProfileView: View {
                 VStack (spacing: 0){
                     // Profile Section
                         HStack {
+                            Spacer()
+                            
                             if let profileImage = profileImage {
                                 Image(uiImage: profileImage)
                                     .resizable()
@@ -98,13 +100,16 @@ struct OtherProfileView: View {
                                     .foregroundColor(colorScheme == .dark ? Color.white : Color(red: 0.4, green: 0.4, blue: 0.4))
                                     .fontWeight(.medium)
                             }
-                            .padding(.leading, 20)
+                            .padding(.leading, 10)
+                            
                             Spacer()
                         }
-                        .padding(.leading, 10)
+                        .padding(.trailing, 10)
                         
                         // Follow Stats
                             HStack(spacing: 20) {
+                                Spacer()
+                                
                                 VStack(spacing: 4) {
                                     Text("\(socialViewModel.followingCount)")
                                         .font(.system(size: 20, weight: .semibold))
@@ -125,7 +130,10 @@ struct OtherProfileView: View {
                                         .font(.system(size: 14))
                                         .foregroundColor(.gray)
                                 } .frame(width: 70)
+                                
+                                Spacer()
                             }
+                            .padding(.trailing, 10)
                             .padding(.vertical, 8)
                             .padding(.bottom, 5)
                         
@@ -181,21 +189,41 @@ struct OtherProfileView: View {
                                             }
                                             navigationPath.append(AppNavigationDestination.post(post))
                                         } label: {
-                                            if let url = URL(string: post.albumImageUrl) {
-                                                AsyncImage(url: url) { image in
-                                                    image
-                                                        .resizable()
-                                                        .frame(width: 140.0, height: 140.0)
-                                                        .clipShape(RoundedRectangle(cornerRadius: 10))
-                                                } placeholder: {
-                                                    ProgressView()
-                                                        .frame(width: 140.0, height: 140.0)
-                                                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                                            if let url = URL(string: post.albumImageUrl), !post.albumImageUrl.isEmpty {
+                                                AsyncImage(url: url) { phase in
+                                                    switch phase {
+                                                    case .success(let image):
+                                                        image
+                                                            .resizable()
+                                                            .aspectRatio(contentMode: .fill)
+                                                            .frame(width: 140.0, height: 140.0)
+                                                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                                                    case .failure(_):
+                                                        Rectangle()
+                                                            .fill(Color.gray.opacity(0.3))
+                                                            .frame(width: 140.0, height: 140.0)
+                                                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                                                            .overlay(
+                                                                Image(systemName: "music.note")
+                                                                    .foregroundColor(.gray)
+                                                            )
+                                                    case .empty:
+                                                        ProgressView()
+                                                            .frame(width: 140.0, height: 140.0)
+                                                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                                                    @unknown default:
+                                                        EmptyView()
+                                                    }
                                                 }
                                             } else {
-                                                Text("ジャケット取得エラー")
+                                                Rectangle()
+                                                    .fill(Color.gray.opacity(0.3))
                                                     .frame(width: 140.0, height: 140.0)
                                                     .clipShape(RoundedRectangle(cornerRadius: 10))
+                                                    .overlay(
+                                                        Image(systemName: "music.note")
+                                                            .foregroundColor(.gray)
+                                                    )
                                             }
                                         }
                                     }
@@ -289,7 +317,9 @@ struct OtherProfileView: View {
                     
                     // 投稿の取得
                     try await postViewModel.getUsersPost(for: userId)
-                    usersPost = postViewModel.posts
+                    await MainActor.run {
+                        usersPost = postViewModel.posts
+                    }
                     
                     // プロフィール画像の取得
                     if let imageURLString = userProfile.profileImageURL,
@@ -304,7 +334,10 @@ struct OtherProfileView: View {
                         }.resume()
                     }
                     let favoriteManager = FavoriteArtistsManager()
-                    favoriteArtists = try await favoriteManager.getFavoriteArtists(userId: userId)
+                    let artists = try await favoriteManager.getFavoriteArtists(userId: userId)
+                    await MainActor.run {
+                        favoriteArtists = artists
+                    }
                     // フォローデータの読み込み
                     await socialViewModel.loadFollowData(for: userId)
                 } catch {
